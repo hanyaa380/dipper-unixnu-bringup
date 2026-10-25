@@ -86,7 +86,4 @@ Mu-Silicium BDS
 - UniXNU 指南: <https://unixnu.com/guide/>
 - 本项目的设备调试分支: <https://github.com/hanyaa380/UniXNU-dipper>
 
-## 给接手 AI 的第一句话
 
-打开 [HANDOFF_PROMPT.md](HANDOFF_PROMPT.md)，先完成其中定义的 UEFI 冒烟测试，
-不要直接修改 XNU。
