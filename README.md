@@ -1,5 +1,5 @@
 # Xiaomi Mi 8 / dipper UniXNU bring-up
-
+(文章由deepseek v4.1 flash编写)
 这是一个面向 Xiaomi Mi 8（`dipper`、SDM845）同类设备协作的公开启动链诊断仓库。
 
 仓库只保存可公开的源码、补丁、测试程序、构建说明和日志模板。它不是可直接刷写的
