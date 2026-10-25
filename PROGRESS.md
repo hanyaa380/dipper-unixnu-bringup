@@ -45,6 +45,17 @@ IOKit catalog，导致 APFS 没有为 `Whole=1` 的根窗口创建卷 media。
 2b37a90 feat(uefi): persist dipper USB log checkpoints
 ```
 
+Git tag：
+
+<https://github.com/hanyaa380/UniXNU-dipper/releases/tag/school-checkpoint-2026-10-25>
+
+也可以用：
+
+```sh
+git clone --branch school-checkpoint-2026-10-25 \
+  https://github.com/hanyaa380/UniXNU-dipper.git
+```
+
 关键提交：
 
 ```text
