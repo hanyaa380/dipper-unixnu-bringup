@@ -83,7 +83,7 @@ Mu-Silicium BDS
 
 - Mu-Silicium: <https://github.com/Project-Silicium/Mu-Silicium>
 - XNU: <https://github.com/apple-oss-distributions/xnu>
-- UniXNU 指南: <https://unixnu.com/guide/>
+- UniXNU 指南: <https://unixnu.com/porting/>
 - 本项目的设备调试分支: <https://github.com/hanyaa380/UniXNU-dipper>
 
 
