@@ -5,7 +5,14 @@
 仓库只保存可公开的源码、补丁、测试程序、构建说明和日志模板。它不是可直接刷写的
 发行镜像，也不包含 Apple kernelcache、`kernel.macho`、ADT、iOS 根卷或用户数据。
 
-## 当前问题
+## 两条工作线
+
+本项目 dipper 调试分支已经进入 XNU，当前卡在 APFS 卷发布。最新状态、源码
+检查点和返校继续步骤见 [PROGRESS.md](PROGRESS.md)。
+
+下面保留的是另一位同类设备协作者从零接续 UEFI 时的排查起点。
+
+## 协作者起点：No Operating System Found
 
 设备可以进入 Mu-Silicium UEFI，但在 BDS 阶段最终显示：
 
@@ -23,25 +30,26 @@ PlatformBootManagerUnableToBoot()
 这说明 UEFI 已经运行，但没有成功执行任何 EFI/Darwin 启动项。问题发生在
 DarwinBoot 和 XNU 之前，因此当前不应继续排查 UFS、APFS、launchd 或用户态。
 
-## 最新移植进度
+## 本项目最新进度
 
-本项目另有一条已经越过 UEFI 并进入 XNU IOKit 的调试线。当前真机证据显示：
+本项目已经越过 UEFI、DarwinBoot、XNU、ArmCpu、GICv3、SMMU、UFS 和根窗口
+发布，当前真机证据显示：
 
 ```text
-ArmCpu prepareGic returned
-ArmCpu IOCPU::start returned
-ArmCpu processor register returned
-ArmCpu IRQ controller returned
-ArmCpu initCPU enter
+SMMU SMR=800f0100 S2CR=00000002
+WINDOWS found=2 prepared=2 published=2
+IO reads=8 failures=0
+APFS load=0 registered=0 vfsops=0
 ```
 
-GIC 已经映射并完成 `prepareGic()`，但还没有证据证明 `enableGic()` 完成。最新探针
-正在拆分 `initCPU()`、`enableGic()`、SGI probe、timer 和 `setCPUState()`：
+UFS 和根镜像读取已经工作。当前问题只在于 APFS personalities 最初没有送入
+IOKit catalog。修复代码已经提交为：
 
-- 设备调试提交：`cf6770b`
-- 新构建：<https://github.com/hanyaa380/UniXNU-build/actions/runs/40170103530>
+- 设备检查点：`2b37a90`
+- APFS 修复：`bf9642d`
+- 待验证构建：<https://github.com/hanyaa380/UniXNU-build/actions/runs/40177699244>
 
-完整的已验证结果、镜像哈希、日志和下一步见 [PROGRESS.md](PROGRESS.md)。
+完整的已验证结果、镜像哈希、日志、构建参数和下一步见 [PROGRESS.md](PROGRESS.md)。
 
 ## 第一个里程碑
 
@@ -63,6 +71,7 @@ Mu-Silicium BDS
 | 路径 | 用途 |
 | --- | --- |
 | `PROGRESS.md` | 真机进度、镜像哈希和当前卡点 |
+| `configs/dipper-apfs-stage.toml` | 返校后继续测试的 APFS 根卷配置 |
 | `docs/architecture.md` | 启动链和验收门 |
 | `docs/no-os-found.md` | `No Operating System Found` 的分层排查 |
 | `docs/uefi-smoke-test.md` | UEFI Shell、FAT/ESP 和 Hello EFI 测试 |
@@ -88,5 +97,8 @@ Mu-Silicium BDS
 
 ## 给接手 AI 的第一句话
 
-打开 [HANDOFF_PROMPT.md](HANDOFF_PROMPT.md)，先完成其中定义的 UEFI 冒烟测试，
-不要直接修改 XNU。
+如果接手**本项目 dipper 调试分支**，先读 [PROGRESS.md](PROGRESS.md)，从 APFS
+personalities 和根卷 media 继续。
+
+如果接手的是仍显示 `No Operating System Found` 的同类设备，打开
+[HANDOFF_PROMPT.md](HANDOFF_PROMPT.md)，先完成 UEFI 冒烟测试，不要直接修改 XNU。

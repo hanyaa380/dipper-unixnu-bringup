@@ -1,0 +1,24 @@
+version = 1
+
+[boot]
+timeout = 5
+default = "xnu"
+
+[ui]
+title = "Mi 8 APFS root stage"
+
+[kits]
+autoload = false
+
+[[entry]]
+id = "xnu"
+title = "XNU APFS root stage"
+type = "xnu"
+path = "Payloads/kernel.macho"
+args = "-v debug=0x14f startup_debug=1 boot-progress=2 sheng-build-tag=dipper-apfs-root sheng-log=1 cpus=1 armcpu-timer-intid=19 native-ufs-root=1 native-ufs-diagnostics=1 native-ufs-smmu-stream=0x100 native-ufs-smmu-mask=0xf native-ufs-smmu-size=0x80000 native-ufs-smmu-adopt=1 sheng-pmgr=2 offline-apfs-load=1 -apfs_shared_datavolume kperf-skip-early=1 iokit-sync-matching=1 iokit-sync-no-wait=1 iokit-skip-apple-cpu=1"
+
+[[entry]]
+id = "shutdown"
+title = "Power off"
+type = "action"
+action = "shutdown"

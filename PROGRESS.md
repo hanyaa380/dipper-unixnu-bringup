@@ -1,181 +1,241 @@
-# 移植进度
-
-本页记录已经在真机上验证的结果。未实际启动验证的内容会明确标记为“待验证”。
+# 移植进度与返校继续检查点
 
 最后更新：2026-10-25（Asia/Shanghai）
 
+本页区分两条工作线：
+
+- **本项目 dipper 调试分支**：已经进入 XNU，当前卡在 APFS 卷发布。
+- **从 `No Operating System Found` 开始的协作者**：仍应先完成 UEFI FAT/EFI
+  冒烟测试。
+
+## 当前结论
+
+本项目已经完成：
+
+```text
+Fastboot
+  -> BootShim
+  -> Mu-Silicium UEFI
+  -> UniXNU
+  -> DarwinBoot
+  -> XNU
+  -> ArmCpu / GICv3 / timer
+  -> UFS / SMMU / GPT
+  -> OS + SystemOS 根窗口发布
+```
+
+当前停在：
+
+```text
+UFS ROOT FAILURE: SystemOS signed volume not found
+```
+
+根镜像、UFS 和 SMMU 都已验证正常；失败原因是 APFS personalities 没有进入
+IOKit catalog，导致 APFS 没有为 `Whole=1` 的根窗口创建卷 media。
+
+## 源码检查点
+
+设备源码：
+
+<https://github.com/hanyaa380/UniXNU-dipper>
+
+返校检查点提交：
+
+```text
+2b37a90 feat(uefi): persist dipper USB log checkpoints
+```
+
+关键提交：
+
+```text
+2b37a90 feat(uefi): persist dipper USB log checkpoints
+bf9642d fix(apfs): publish APFS personalities after kernel load
+d8adfc9 diag(ufs): report APFS load and IOMedia properties
+cf6770b diag(armcpu): trace initCPU and GIC enable substeps
+488d13f fix(armcpu): strip split -D boot progress flag
+8791cbe fix(armcpu): remove split boot progress macro arguments
+81da04a diag(armcpu): trace boot CPU startup stages
+e9ffdb0 diag(iokit): exclude all Apple CPU candidates on dipper
+```
+
 ## 状态矩阵
 
-| 阶段 | 状态 | 证据 |
+| 阶段 | 状态 | 关键证据 |
 | --- | --- | --- |
-| Fastboot + BootShim | 已验证 | Fastboot 可发送并临时启动 boot.img |
-| Mu-Silicium UEFI | 已验证 | UEFI 菜单、屏幕和 USB 日志代码可运行 |
-| UEFI 到 DarwinBoot | 已验证 | 能进入 XNU，不再停留在 `No Operating System Found` |
-| XNU 早期入口 | 已验证 | 出现 kernel console、NVRAM 和 PE lockdown 日志 |
-| IOKit CPU 匹配 | 已验证 | `ArmCpu` probe/start 被调用 |
-| GIC 映射 | 已验证 | `prepareGic returned`，GIC stage 到达 9 |
-| GIC CPU interface 使能 | 未完成 | 停在 `initCPU enter`，尚无 `initCPU returned` |
-| 定时器中断 | 未验证 | IRQ ID 仍为 1023，timer 中断计数没有增长 |
-| UFS | 未启动 | `UFS TIME ... requests=0` |
-| APFS / launchd / 用户态 | 未开始 | 尚未发布根块设备 |
+| Fastboot + BootShim | 已验证 | 临时 boot.img 可启动 |
+| Mu-Silicium UEFI | 已验证 | 菜单、GOP、USB 日志可用 |
+| DarwinBoot → XNU | 已验证 | 可进入 XNU 控制台 |
+| XNU 早期入口 | 已验证 | kernel console、NVRAM、PE lockdown |
+| ArmCpu probe/start | 已验证 | 全部外层和内部 start 阶段返回 |
+| GICv3 映射 | 已验证 | `prepareGic returned` |
+| GIC CPU interface | 已验证 | `enableGic returned`，`rdy=1` |
+| CPU `initCPU()` | 已验证 | `initCPU returned` |
+| SGI 可选自探测 | 已识别硬件限制 | 开启时硬锁，启动配置已移除 |
+| UFS 控制器 | 已验证 | SCSI READ(10) 完成，`ocs=0` |
+| SMMU stream | 已验证 | `smr=800f0100`、`s2cr=00000002` |
+| GPT / 根窗口 | 已验证 | 找到并发布 OS、SystemOS 两个窗口 |
+| 根窗口 I/O | 已验证 | `IO reads=8 failures=0` |
+| APFS kext load | 已验证 | `APFS load=0` |
+| APFS IOKit personalities | 修复已提交，待真机验证 | `bf9642d` |
+| SystemOS/Data 挂载 | 未完成 | 等待 APFS 卷 media |
+| dyld / launchd | 未开始 | 依赖根卷 |
+| iOS 用户态 | 未开始 | 尚未进入 |
+| Android/iOS 双系统 | 未开始 | 先完成用户态启动 |
 
-当前阶段是：**XNU IOKit 平台启动，CPU0 的 `ArmCpu::initCPU()` 内部。**
+## 最新真机证据
 
-## 已成功构建
-
-GitHub Actions：
-
-<https://github.com/hanyaa380/UniXNU-build/actions/runs/40165586538>
-
-结果：`success`
-
-设备仓库提交：
-
-```text
-488d13f fix(armcpu): strip split -D boot progress flag
-```
-
-构建产物：
-
-| 文件 | SHA-256 |
-| --- | --- |
-| artifact.zip | `3459f9b51bca9a160ede898a723e7771ac462e911ab4488fde828984b9cc6122` |
-| 原始 kernel.macho | `45902fab48c8f8e520eea11ab0e57f85a9d9bdeaa3b2d1e4b92382e3595f61a7` |
-| 入口探针 kernel.macho | `ed91ddbd32704b2147e96f8e75635d9d915f26ed784339b949de2b2b3bf021ba` |
-| cache ESP 镜像 | `6e0b1d5846a3ee4dbf2109d555826627ea4556f1578c3ff3f3a54db949cbe703` |
-
-内核中已确认存在：
+UFS/SMMU 成功：
 
 ```text
-ArmCpu start enter
-ArmCpu boot args returned
-ArmCpu prepareGic enter
-ArmCpu prepareGic returned
-ArmCpu IOCPU::start enter
-ArmCpu processor register enter
-ArmCpu IRQ controller enter
-ArmCpu initCPU enter
+CMD n=19 type=01 op=28 lun=00 ocs=00 rsp=21000000 scsi=0000
+SMMU smr=800f0100 s2cr=00000002
+WINDOWS found=2 prepared=2 published=2 bytes=c4e00000
+IO reads=8 failures=0
 ```
 
-## 最近一次真机结果
-
-阶段历史：
+APFS 诊断：
 
 ```text
-stage: ArmCpu initCPU enter
-4s ArmCpu IOCPU::start returned
-4s ArmCpu processor register enter
-4s ArmCpu processor register returned
-4s ArmCpu IRQ controller enter
-4s ArmCpu IRQ controller returned
-4s ArmCpu initCPU enter
+NATIVE_UFS media report: published=2 reads=8 failures=0 media=2
+APFS load=0 registered=0 vfsops=0
+disk0 content= hint= whole=1 leaf=1 size=c4e00000 uuid=-
+disk1 content= hint= whole=1 leaf=1 size=c4e00000 uuid=-
 ```
 
-关键状态：
+根因：
+
+- `APFS load=0` 表示 APFS kext 已经成功加载。
+- `registered=0` 是加载调用后的即时 VFS 检查结果。
+- `disk0/disk1` 的 `Whole=1`，说明 APFS whole-disk personality 本应匹配。
+- C 接口 `OSKextLoadKextWithIdentifier()` 默认 `startMatchingOpt =
+  kOSKextExcludeAll`，只 load，不把 APFS personalities 发送给 IOKit。
+
+修复：
 
 ```text
-ARMCPU probe=1 start=1 reg=1 GIC stage=9 fail=0 rdy=0
-pidr=3b typer=7b0418
-GIC raw rng=24 reg=32 cmp=11
-    | a00000/10000/a60000/100000 stride=20000 typer=21
-CPU max=1 IRQ phase=0 id=1023
-UFS TIME ... requests=0
+bf9642d fix(apfs): publish APFS personalities after kernel load
 ```
 
-## 已确认的结论
-
-1. GIC 地址和设备树属性已经能够解析，`prepareGic()` 成功返回。
-2. `IOCPU::start()`、`ml_processor_register()` 和
-   `IOCPUInterruptController` 注册都已返回。
-3. CPU0 已经进入 `ArmCpu::initCPU(true)`。
-4. 停顿位于 `initCPU()` 的 boot CPU 分支，而不是更早的 probe、GIC 映射或 CPU 注册。
-5. `rdy=0` 表示 `enableGic()` 尚未设置完成标记，但还需要新增子阶段确认具体位置。
-6. `IRQ id=1023` 和 timer 无增长只能说明尚未观察到有效中断，不能单独证明
-   GICv3 或 UFS 的根因。
-7. UFS `requests=0` 是平台启动尚未推进的结果，当前不应继续修改 UFS 驱动。
-
-## 最新诊断补丁
-
-设备仓库提交：
-
-```text
-cf6770b diag(armcpu): trace initCPU and GIC enable substeps
-```
-
-新增阶段包括：
-
-```text
-ArmCpu enableGic enter
-ArmCpu enableGic SRE ready
-ArmCpu enableGic priority ready
-ArmCpu enableGic sources ready
-ArmCpu enableGic group1 ready
-ArmCpu enableGic state sampled
-ArmCpu enableGic returned
-ArmCpu initCPU boot path
-ArmCpu initCPU enableGic enter
-ArmCpu initCPU enableGic returned
-ArmCpu initCPU SGI probe enter
-ArmCpu initCPU SGI probe returned
-ArmCpu initCPU optional sources enter
-ArmCpu initCPU optional sources returned
-ArmCpu initCPU timebase enter
-ArmCpu initCPU timebase returned
-ArmCpu initCPU set state enter
-ArmCpu initCPU set state returned
-ArmCpu initCPU returned
-```
+改为 C++ `OSKext::loadKextWithIdentifier(..., kOSKextExcludeNone,
+kOSKextExcludeNone, ...)`，从而发送 APFS personalities 并启动匹配。
 
 ## 正在构建
 
 GitHub Actions：
 
-<https://github.com/hanyaa380/UniXNU-build/actions/runs/40170103530>
+<https://github.com/hanyaa380/UniXNU-build/actions/runs/40177699244>
 
 记录本页时状态：`in_progress`
 
-预期产出：包含 `cf6770b` 新阶段字符串的 `unixnu-dipper-kernel-1`。
+注意：该运行由 `bf9642d` 触发，但 GitHub workflow checkout 使用设备仓库
+`main`。`2b37a90` 只增加 UEFI 日志文件，不改变这次内核源码中的 APFS 修复。
 
-## 下一步
+## 已验证的 APFS 诊断内核
 
-1. 等待构建成功并下载 artifact。
-2. 确认内核中存在 `ArmCpu initCPU boot path` 和
-   `ArmCpu enableGic enter`。
-3. 复制内核并应用入口/panic 屏幕探针。
-4. 生成新的 128 MiB、FAT16、4K-sector cache ESP。
-5. 通过 `fastboot boot` 临时启动。
-6. 记录最后出现的阶段：
+运行：
+
+<https://github.com/hanyaa380/UniXNU-build/actions/runs/40175066339>
+
+结果：`success`
+
+| 文件 | SHA-256 |
+| --- | --- |
+| artifact.zip | `223501a809d4f0ca9a552f1e1d7939e3953d1b5b933e3ad4dd72f9033bfe5bb8` |
+| 原始 kernel.macho | `1d5123c85bae82ca280e97ecb841538a78807c7c12691af786708954be982ce0` |
+| 入口探针 kernel.macho | `6f115eb33c2c9ff67953091e2a9a455283712c9cb030e8184f439cc55913daa1` |
+| 媒体报告 cache 镜像 | `14f8739386085413f333ee7e2c54433c1333e6078c03a33f5f98a3e1839843a4` |
+
+## 根镜像验证
+
+本地 `userdata-root.img`：
 
 ```text
-卡在 enableGic enter
-  -> 检查 GIC system-register 接口或第一条 enableGic 操作
-
-卡在 SRE ready 之前
-  -> ICC_SRE_EL1 读取/写入
-
-卡在 priority ready 之前
-  -> ICC_CTLR/PMR/BPR1
-
-卡在 sources ready 之前
-  -> redistributor ISENABLER0 或 GICD_CTLR MMIO
-
-卡在 group1 ready 之前
-  -> ICC_IGRPEN1_EL1
-
-通过 enableGic 后卡在 SGI probe
-  -> ICC_SGI1R/HPPIR 自探测路径
-
-通过 SGI probe 后卡在 timebase
-  -> CNTV_CTL_EL0
-
-通过 timebase 后卡在 set state
-  -> IOCPU 状态转换
+image_bytes = 9382658048
+image_sha256 = fd43ee7035ce185ce4215ac93fdc006fd784a54b3b7442e21457c226cbe03093
 ```
 
-## 安全记录
+窗口：
 
-- 上轮只写入 `cache` 分区。
-- 原 `cache` 分区有 256 MiB 备份。
-- 未写入 boot、userdata、unixnu 或 Android system。
-- 测试镜像通过 Fastboot 临时启动。
-- 本仓库不包含 Apple kernelcache、ADT、根卷或用户数据。
+| 名称 | Offset | Size | 结构 |
+| --- | --- | --- | --- |
+| OS | `0x100000` | `0x16a408600` | GPT 磁盘 |
+| SystemOS | `0x16a600000` | `0xc4e00000` | 直接以 `NXSB` 开头的 APFS 容器 |
+
+SystemOS 中存在预期 UUID：
+
+```text
+8846FE78-2910-4297-AF97-D59BB6F8FC16
+```
+
+因此当前失败不是镜像缺卷或 UUID 写错。
+
+## 返校后继续步骤
+
+1. 打开 Actions `40177699244`，确认构建成功。
+2. 下载 `unixnu-dipper-kernel-1`。
+3. 确认内核包含：
+
+```text
+fix(apfs): publish APFS personalities after kernel load
+native_apfs_load_and_match
+APFS load=%d registered=%u vfsops=%llx
+```
+
+4. 对 kernel 副本应用入口探针：
+
+```sh
+UNIXNU_UEFI=/root/mi8uefi/Mu-Silicium \
+python3 scripts/patch-xnu-entry-probe.py kernel.panic.macho \
+  --panic-screen --no-reset
+```
+
+5. 使用 [configs/dipper-apfs-stage.toml](configs/dipper-apfs-stage.toml) 创建
+   128 MiB FAT16、4K-sector ESP。
+6. `fastboot flash cache <image>` 后执行 `fastboot boot
+   boot-dipper-usblog-persist.img`。
+7. 首选确认媒体报告：APFS personalities 应开始匹配，随后出现 APFS 容器和卷 media。
+8. 根启动配置应看到：
+
+```text
+SystemOS volume 8846FE78-2910-4297-AF97-D59BB6F8FC16 ready
+```
+
+9. 通过后再处理 SystemOS mount、Data mount、dyld、launchd 和显示/触控/网络。
+
+## 构建工作流参数
+
+仓库：`hanyaa380/UniXNU-build`
+
+工作流：`macos.yml`
+
+参数：
+
+```text
+device_repository=hanyaa380/UniXNU-dipper
+device_ref=main
+defconfig=dipper_defconfig
+steps=kernel
+xcode=26.6
+```
+
+`pre_build`：
+
+```sh
+set -euo pipefail
+./unixnu ipsw fetch KernelCache OS Cryptex1,SystemOS
+curl -fL --retry 5 --retry-all-errors --connect-timeout 20 \
+  -o "$RUNNER_TEMP/fajita-kernel.zip" \
+  "https://nightly.link/johnpanos/UniXNU/actions/runs/39734235637/unixnu-fajita_defconfig.zip"
+rm -rf "$RUNNER_TEMP/fajita-kernel"
+unzip -q "$RUNNER_TEMP/fajita-kernel.zip" -d "$RUNNER_TEMP/fajita-kernel"
+echo "FAJITA_STORAGE_CANDIDATE=$RUNNER_TEMP/fajita-kernel/fajita/kernel/kernel.macho" \
+  >> "$GITHUB_ENV"
+```
+
+## 安全与文件边界
+
+- 只写临时 `cache` 分区。
+- 原 cache 有 256 MiB 备份。
+- 未写 boot、userdata、unixnu 或 Android system。
+- 仓库不包含 Apple kernelcache、ADT、IPSW、iOS 根卷或用户数据。
+- 内核和根镜像应由协作者从合法来源自行构建/提取。
