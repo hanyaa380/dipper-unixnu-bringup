@@ -1,5 +1,5 @@
 # Xiaomi Mi 8 / dipper UniXNU bring-up
-
+(文章由deepseek v4.1 flash编写)
 这是一个面向 Xiaomi Mi 8（`dipper`、SDM845）同类设备协作的公开启动链诊断仓库。
 
 仓库只保存可公开的源码、补丁、测试程序、构建说明和日志模板。它不是可直接刷写的
@@ -92,13 +92,5 @@ Mu-Silicium BDS
 
 - Mu-Silicium: <https://github.com/Project-Silicium/Mu-Silicium>
 - XNU: <https://github.com/apple-oss-distributions/xnu>
-- UniXNU 指南: <https://unixnu.com/guide/>
+- UniXNU 指南: <https://unixnu.com/porting/>
 - 本项目的设备调试分支: <https://github.com/hanyaa380/UniXNU-dipper>
-
-## 给接手 AI 的第一句话
-
-如果接手**本项目 dipper 调试分支**，先读 [PROGRESS.md](PROGRESS.md)，从 APFS
-personalities 和根卷 media 继续。
-
-如果接手的是仍显示 `No Operating System Found` 的同类设备，打开
-[HANDOFF_PROMPT.md](HANDOFF_PROMPT.md)，先完成 UEFI 冒烟测试，不要直接修改 XNU。
