@@ -23,6 +23,26 @@ PlatformBootManagerUnableToBoot()
 这说明 UEFI 已经运行，但没有成功执行任何 EFI/Darwin 启动项。问题发生在
 DarwinBoot 和 XNU 之前，因此当前不应继续排查 UFS、APFS、launchd 或用户态。
 
+## 最新移植进度
+
+本项目另有一条已经越过 UEFI 并进入 XNU IOKit 的调试线。当前真机证据显示：
+
+```text
+ArmCpu prepareGic returned
+ArmCpu IOCPU::start returned
+ArmCpu processor register returned
+ArmCpu IRQ controller returned
+ArmCpu initCPU enter
+```
+
+GIC 已经映射并完成 `prepareGic()`，但还没有证据证明 `enableGic()` 完成。最新探针
+正在拆分 `initCPU()`、`enableGic()`、SGI probe、timer 和 `setCPUState()`：
+
+- 设备调试提交：`cf6770b`
+- 新构建：<https://github.com/hanyaa380/UniXNU-build/actions/runs/40170103530>
+
+完整的已验证结果、镜像哈希、日志和下一步见 [PROGRESS.md](PROGRESS.md)。
+
 ## 第一个里程碑
 
 先完成下面的链路：
@@ -42,6 +62,7 @@ Mu-Silicium BDS
 
 | 路径 | 用途 |
 | --- | --- |
+| `PROGRESS.md` | 真机进度、镜像哈希和当前卡点 |
 | `docs/architecture.md` | 启动链和验收门 |
 | `docs/no-os-found.md` | `No Operating System Found` 的分层排查 |
 | `docs/uefi-smoke-test.md` | UEFI Shell、FAT/ESP 和 Hello EFI 测试 |
