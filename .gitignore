@@ -1,0 +1,10 @@
+*.log
+*.img
+*.fd
+*.macho
+*.adt
+*.dmg
+*.ipsw
+*.zip
+build/
+out/
