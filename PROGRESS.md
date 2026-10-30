@@ -134,12 +134,19 @@ kOSKextExcludeNone, ...)`，从而发送 APFS personalities 并启动匹配。
 
 GitHub Actions：
 
-<https://github.com/hanyaa380/UniXNU-build/actions/runs/40177699244>
+<https://github.com/hanyaa380/UniXNU-build/actions/runs/41036856309>
 
 记录本页时状态：`in_progress`
 
-注意：该运行由 `bf9642d` 触发，但 GitHub workflow checkout 使用设备仓库
-`main`。`2b37a90` 只增加 UEFI 日志文件，不改变这次内核源码中的 APFS 修复。
+上一次运行 `40177699244` 失败，原因是替换 APFS 调用时误删了
+`OSKextLoadKextWithIdentifier` 的 C 声明，而图形/IOGPU 探针仍在使用它。
+修复提交为：
+
+```text
+8c0fa05 fix(xnu): retain kext load declaration
+```
+
+`41036856309` 使用 `8c0fa05`，同时保留 APFS personalities 修复。
 
 ## 已验证的 APFS 诊断内核
 
