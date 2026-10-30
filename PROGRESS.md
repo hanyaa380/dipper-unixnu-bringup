@@ -49,16 +49,21 @@ Git tag：
 
 <https://github.com/hanyaa380/UniXNU-dipper/releases/tag/school-checkpoint-2026-10-25>
 
+最新检查点：
+
+<https://github.com/hanyaa380/UniXNU-dipper/releases/tag/school-checkpoint-2026-10-30>
+
 也可以用：
 
 ```sh
-git clone --branch school-checkpoint-2026-10-25 \
+git clone --branch school-checkpoint-2026-10-30 \
   https://github.com/hanyaa380/UniXNU-dipper.git
 ```
 
 关键提交：
 
 ```text
+8c0fa05 fix(xnu): retain kext load declaration
 2b37a90 feat(uefi): persist dipper USB log checkpoints
 bf9642d fix(apfs): publish APFS personalities after kernel load
 d8adfc9 diag(ufs): report APFS load and IOMedia properties
@@ -130,15 +135,25 @@ bf9642d fix(apfs): publish APFS personalities after kernel load
 改为 C++ `OSKext::loadKextWithIdentifier(..., kOSKextExcludeNone,
 kOSKextExcludeNone, ...)`，从而发送 APFS personalities 并启动匹配。
 
-## 正在构建
+## 最新构建结果
 
-GitHub Actions：
+运行 `41036856309`：
 
 <https://github.com/hanyaa380/UniXNU-build/actions/runs/41036856309>
 
-记录本页时状态：`in_progress`
+结果：`failure`
 
-上一次运行 `40177699244` 失败，原因是替换 APFS 调用时误删了
+失败阶段：`Run pre-build steps`
+
+这次尚未进入内核编译。旧的 fajita 预处理 artifact 已过期：
+
+```text
+https://nightly.link/johnpanos/UniXNU/actions/runs/39734235637/
+  unixnu-fajita_defconfig.zip
+HTTP 404
+```
+
+代码层面的上一次失败已经修复。运行 `40177699244` 失败，原因是替换 APFS 调用时误删了
 `OSKextLoadKextWithIdentifier` 的 C 声明，而图形/IOGPU 探针仍在使用它。
 修复提交为：
 
@@ -146,7 +161,11 @@ GitHub Actions：
 8c0fa05 fix(xnu): retain kext load declaration
 ```
 
-`41036856309` 使用 `8c0fa05`，同时保留 APFS personalities 修复。
+下一次构建需要在 pre-build 中提供有效期内的 fajita kernel candidate：
+
+- 重新运行上游 fajita workflow 生成新 artifact；
+- 或只向私有 CI 输入仓库上传该候选；
+- 不应把包含 Apple kernelcache 衍生物的候选上传到公开仓库。
 
 ## 已验证的 APFS 诊断内核
 
