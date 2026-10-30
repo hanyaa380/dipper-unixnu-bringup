@@ -137,35 +137,62 @@ kOSKextExcludeNone, ...)`，从而发送 APFS personalities 并启动匹配。
 
 ## 最新构建结果
 
-运行 `41036856309`：
+运行 `41042897058`：
 
-<https://github.com/hanyaa380/UniXNU-build/actions/runs/41036856309>
+<https://github.com/hanyaa380/UniXNU-build/actions/runs/41042897058>
 
-结果：`failure`
+结果：`success`
 
-失败阶段：`Run pre-build steps`
-
-这次尚未进入内核编译。旧的 fajita 预处理 artifact 已过期：
+源码：
 
 ```text
-https://nightly.link/johnpanos/UniXNU/actions/runs/39734235637/
-  unixnu-fajita_defconfig.zip
-HTTP 404
+124c732 fix(xnu): update component probe patch offsets
 ```
 
-代码层面的上一次失败已经修复。运行 `40177699244` 失败，原因是替换 APFS 调用时误删了
-`OSKextLoadKextWithIdentifier` 的 C 声明，而图形/IOGPU 探针仍在使用它。
-修复提交为：
+检查点标签：
+
+<https://github.com/hanyaa380/UniXNU-dipper/releases/tag/build-41042897058>
+
+构建产物：
+
+| 文件 | SHA-256 |
+| --- | --- |
+| artifact.zip | `114b28929482abe4a111cd103848c710e8d39e1717f93005964aa23b0313e0bd` |
+| 原始 kernel.macho | `c27ae77f1c14888dbb73c3182c4530870956e00c684cf280b946200a894eb374` |
+| 入口探针 kernel.macho | `69ad8de35d262af2ed5d5cf677794d3fa425a2953a96cdba295fb17c5c997af9` |
+| APFS match cache ESP | `6996a3789530c68bcec76f9d507d1eae905770ac9e0d5cb59f54bb0815f9e370` |
+
+内核符号已确认：
 
 ```text
-8c0fa05 fix(xnu): retain kext load declaration
+_native_apfs_load_and_match
+_native_apfs_load_status
+_native_apfs_registered
 ```
 
-下一次构建需要在 pre-build 中提供有效期内的 fajita kernel candidate：
+## 私有 CI 输入
 
-- 重新运行上游 fajita workflow 生成新 artifact；
-- 或只向私有 CI 输入仓库上传该候选；
-- 不应把包含 Apple kernelcache 衍生物的候选上传到公开仓库。
+旧的公开 fajita artifact 已过期。当前使用私有仓库：
+
+```text
+hanyaa380/dipper-private-inputs
+```
+
+其中保存 `fajita-kernel.zip`，由 `UniXNU-build` 的只读 Deploy Key 拉取。
+该仓库必须保持私有，不能发布 Apple kernelcache 衍生物。
+
+工作流提交：
+
+```text
+53cd5bf ci: fetch private kernel reference by deploy key
+```
+
+当前 pre-build 只需提取 IPSW：
+
+```sh
+set -euo pipefail
+./unixnu ipsw fetch KernelCache OS Cryptex1,SystemOS
+```
 
 ## 已验证的 APFS 诊断内核
 
@@ -208,7 +235,7 @@ SystemOS 中存在预期 UUID：
 
 ## 返校后继续步骤
 
-1. 打开 Actions `40177699244`，确认构建成功。
+1. Actions `41042897058` 已经成功。
 2. 下载 `unixnu-dipper-kernel-1`。
 3. 确认内核包含：
 
@@ -226,12 +253,13 @@ python3 scripts/patch-xnu-entry-probe.py kernel.panic.macho \
   --panic-screen --no-reset
 ```
 
-5. 使用 [configs/dipper-apfs-stage.toml](configs/dipper-apfs-stage.toml) 创建
-   128 MiB FAT16、4K-sector ESP。
+5. 先用 [configs/dipper-apfs-match.toml](configs/dipper-apfs-match.toml)
+   创建媒体诊断 ESP，确认 APFS 卷出现。
 6. `fastboot flash cache <image>` 后执行 `fastboot boot
    boot-dipper-usblog-persist.img`。
 7. 首选确认媒体报告：APFS personalities 应开始匹配，随后出现 APFS 容器和卷 media。
-8. 根启动配置应看到：
+8. 再将配置切换为 [configs/dipper-apfs-stage.toml](configs/dipper-apfs-stage.toml)，
+   根启动配置应看到：
 
 ```text
 SystemOS volume 8846FE78-2910-4297-AF97-D59BB6F8FC16 ready
@@ -260,14 +288,10 @@ xcode=26.6
 ```sh
 set -euo pipefail
 ./unixnu ipsw fetch KernelCache OS Cryptex1,SystemOS
-curl -fL --retry 5 --retry-all-errors --connect-timeout 20 \
-  -o "$RUNNER_TEMP/fajita-kernel.zip" \
-  "https://nightly.link/johnpanos/UniXNU/actions/runs/39734235637/unixnu-fajita_defconfig.zip"
-rm -rf "$RUNNER_TEMP/fajita-kernel"
-unzip -q "$RUNNER_TEMP/fajita-kernel.zip" -d "$RUNNER_TEMP/fajita-kernel"
-echo "FAJITA_STORAGE_CANDIDATE=$RUNNER_TEMP/fajita-kernel/fajita/kernel/kernel.macho" \
-  >> "$GITHUB_ENV"
 ```
+
+`FAJITA_STORAGE_CANDIDATE` 由工作流中的
+`Fetch private kernel reference` 步骤自动设置。
 
 ## 安全与文件边界
 

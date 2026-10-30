@@ -71,6 +71,7 @@ Mu-Silicium BDS
 | 路径 | 用途 |
 | --- | --- |
 | `PROGRESS.md` | 真机进度、镜像哈希和当前卡点 |
+| `configs/dipper-apfs-match.toml` | 验证 APFS personalities 和卷 media |
 | `configs/dipper-apfs-stage.toml` | 返校后继续测试的 APFS 根卷配置 |
 | `docs/architecture.md` | 启动链和验收门 |
 | `docs/no-os-found.md` | `No Operating System Found` 的分层排查 |
