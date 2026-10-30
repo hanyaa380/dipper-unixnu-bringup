@@ -5,17 +5,17 @@ timeout = 5
 default = "xnu"
 
 [ui]
-title = "Mi 8 APFS rematch verification"
+title = "Mi 8 APFS writable-probe verification"
 
 [kits]
 autoload = false
 
 [[entry]]
 id = "xnu"
-title = "XNU APFS rematch verification"
+title = "XNU APFS writable-probe verification"
 type = "xnu"
 path = "Payloads/kernel.macho"
-args = "-v debug=0x14f startup_debug=1 boot-progress=2 sheng-build-tag=iokit29apfsrematch sheng-log=1 cpus=1 armcpu-timer-intid=19 native-ufs-probe=12 native-ufs-diagnostics=1 native-ufs-smmu-stream=0x100 native-ufs-smmu-mask=0xf native-ufs-smmu-size=0x80000 native-ufs-smmu-adopt=1 sheng-pmgr=2 offline-apfs-load=1 -apfs_shared_datavolume kperf-skip-early=1 iokit-sync-matching=1 iokit-sync-no-wait=1 iokit-skip-apple-cpu=1"
+args = "-v debug=0x14f startup_debug=1 boot-progress=2 sheng-build-tag=iokit30writableprobe sheng-log=1 cpus=1 armcpu-timer-intid=19 native-ufs-probe=12 native-ufs-diagnostics=1 native-ufs-claim-writable=1 native-ufs-smmu-stream=0x100 native-ufs-smmu-mask=0xf native-ufs-smmu-size=0x80000 native-ufs-smmu-adopt=1 sheng-pmgr=2 offline-apfs-load=1 -apfs_shared_datavolume kperf-skip-early=1 iokit-sync-matching=1 iokit-sync-no-wait=1 iokit-skip-apple-cpu=1"
 
 [[entry]]
 id = "shutdown"
