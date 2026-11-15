@@ -7,8 +7,9 @@
 
 ## 两条工作线
 
-本项目 dipper 调试分支已经进入 XNU，当前卡在 APFS 卷发布。最新状态、源码
-检查点和返校继续步骤见 [PROGRESS.md](PROGRESS.md)。
+本项目 dipper 调试分支已经完成 iOS 用户态、显示和触摸全链路。真机触摸
+可以操作 SpringBoard，并已进入 iOS 初始设置引导。最新状态、成功镜像、
+源码提交和后续 GPU 路线见 [PROGRESS.md](PROGRESS.md)。
 
 下面保留的是另一位同类设备协作者从零接续 UEFI 时的排查起点。
 
@@ -32,24 +33,27 @@ DarwinBoot 和 XNU 之前，因此当前不应继续排查 UFS、APFS、launchd 
 
 ## 本项目最新进度
 
-本项目已经越过 UEFI、DarwinBoot、XNU、ArmCpu、GICv3、SMMU、UFS 和根窗口
-发布，当前真机证据显示：
+本项目已经越过 UEFI、DarwinBoot、XNU、ArmCpu、GICv3、SMMU、UFS、APFS、
+launchd、backboardd 和 SpringBoard。当前真机结果：
 
 ```text
-SMMU SMR=800f0100 S2CR=00000002
-WINDOWS found=2 prepared=2 published=2
-IO reads=8 failures=0
-APFS load=0 registered=0 vfsops=0
+ST FTS -> NativeHidInput -> IOHIDEventDriver -> backboardd -> SpringBoard
+fts: finger 0 down / move / up
+touch: works in iOS userland
+boot: reaches the initial iOS setup guide
 ```
 
-UFS 和根镜像读取已经工作。当前问题只在于 APFS personalities 最初没有送入
-IOKit catalog。修复代码已经提交为：
+成功基线 payload：
 
-- 设备检查点：`2b37a90`
-- APFS 修复：`bf9642d`
-- 待验证构建：<https://github.com/hanyaa380/UniXNU-build/actions/runs/40177699244>
+```text
+/root/mi8uefi/UniXNU-official-merge/out/dipper-hid-fullconsole/dipper/payload/payload.img
+SHA-256 ca0c537bd04ba3750a42c4729e11cb1ae646371be17ff4c69966181b35385dce
+```
 
-完整的已验证结果、镜像哈希、日志、构建参数和下一步见 [PROGRESS.md](PROGRESS.md)。
+关键启动参数为 `fts=1 fts_steps=6 offline-hid-input=1
+offline-hid-home=1 sheng-touch-hid=1`。当前遗留工作是完成初次设置、验证
+系统手势，并把下一阶段转到 A630 GPU。完整的已验证结果、硬件信息和历史
+APFS 排查见 [PROGRESS.md](PROGRESS.md)。
 
 ## 第一个里程碑
 
@@ -73,6 +77,7 @@ Mu-Silicium BDS
 | `PROGRESS.md` | 真机进度、镜像哈希和当前卡点 |
 | `configs/dipper-apfs-match.toml` | 验证 APFS personalities 和卷 media |
 | `configs/dipper-apfs-stage.toml` | 返校后继续测试的 APFS 根卷配置 |
+| `configs/dipper-io-media-registry.toml` | 当前 APFS scheme/IOMedia 定向诊断配置 |
 | `docs/architecture.md` | 启动链和验收门 |
 | `docs/no-os-found.md` | `No Operating System Found` 的分层排查 |
 | `docs/uefi-smoke-test.md` | UEFI Shell、FAT/ESP 和 Hello EFI 测试 |
